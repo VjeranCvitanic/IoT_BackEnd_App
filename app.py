@@ -9,6 +9,16 @@ app = FastAPI()
 HOMEASSISTANT_URL = "https://najjacagrupa.ninja"
 API_PASSWORD = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmNTU3YzNjOWY0N2Q0NmFjOWVlYjY3ZDRjMTU2OWM4NyIsImlhdCI6MTcxNzUxNzk0NywiZXhwIjoyMDMyODc3OTQ3fQ.3GHy5DYqEDIoc8SzXiWnBRRwVH1qvIlM7irDromKHkQ"
 
+# GET
+# "/"
+# "/all"
+# "/sensor"
+# "/chair"
+# "/all_locations"
+#
+# "/start_info"         ----------->   fetches data from every location and room
+# "/{location}/{room}"  ----------->   fetches data from specific room
+
 # Helper function to make authenticated requests to HomeAssistant
 def call_ha_api(method: str, endpoint: str, json: dict = None):
     url = f"{HOMEASSISTANT_URL}/api{endpoint}"
@@ -125,7 +135,6 @@ async def get_states():
     allowed_types = ["zone"]  # Example types
 
     locations = []
-    unique_loc = []
 
     for elem in states:
         entity_id = elem.get("entity_id")
@@ -150,7 +159,6 @@ async def get_states():
     allowed_types = ["zone"]  # Example types
 
     locations = []
-    unique_loc = []
 
     for elem in states:
         entity_id = elem.get("entity_id")
@@ -249,7 +257,3 @@ def get_room_info(location, room):
                         room_info.append(partial_data)
 
     return room_info
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)  # Change port if needed
