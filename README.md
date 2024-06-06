@@ -1,4 +1,4 @@
-# IoT_BackEnd_App
+How to run locally:
 
-Start app: 
-    uvicorn app:app --host 127.0.0.1 --port 8000
+1. install Docker
+2. ./run_api.bat in cmd with admin privilages
