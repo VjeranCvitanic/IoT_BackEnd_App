@@ -1,23 +1,22 @@
 from fastapi import FastAPI, HTTPException
 import requests
-import uvicorn
-import json
+from supabase import create_client, Client
 
-app = FastAPI()
-
-# Configuration (replace with your details)
+# Configuration for Home Assistant 
 HOMEASSISTANT_URL = "https://najjacagrupa.ninja"
 API_PASSWORD = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmNTU3YzNjOWY0N2Q0NmFjOWVlYjY3ZDRjMTU2OWM4NyIsImlhdCI6MTcxNzUxNzk0NywiZXhwIjoyMDMyODc3OTQ3fQ.3GHy5DYqEDIoc8SzXiWnBRRwVH1qvIlM7irDromKHkQ"
 
+# Configuration for Supabase
+SUPABASE_URL = "https://gguxaxulmcemrqatwkge.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdndXhheHVsbWNlbXJxYXR3a2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc3MTI2OTgsImV4cCI6MjAzMzI4ODY5OH0.-dfDakyaHVbIt4EmVfewTggbX3qhUiJkPsFHahTE4TM"
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+app = FastAPI()
+
+
 # GET
-# "/"
-# "/all"
-# "/sensor"
-# "/chair"
-# "/all_locations"
-#
-# "/start_info"         ----------->   fetches data from every location and room
-# "/{location}/{room}"  ----------->   fetches data from specific room
+# "/locations" - get all locations and their rooms
+# "/sensor_data/{location}/{room}" - get sensor data for a specific room
 
 # Helper function to make authenticated requests to HomeAssistant
 def call_ha_api(method: str, endpoint: str, json: dict = None):
@@ -37,7 +36,7 @@ def call_ha_api(method: str, endpoint: str, json: dict = None):
     except Exception as err:
         raise HTTPException(status_code=500, detail=str(err))
 
-# Path operation to get all states
+"""# Path operation to get all states
 @app.get("/all")
 async def get_states():
     endpoint = "/states"
@@ -133,10 +132,10 @@ async def get_states():
     states = call_ha_api("GET", endpoint)
 
     allowed_types = ["zone"]  # Example types
-
+    print("states",states)
     locations = []
-
     for elem in states:
+        print("elem",elem)
         entity_id = elem.get("entity_id")
         
         # Check if the entity_id starts with any of the allowed types
@@ -257,3 +256,66 @@ def get_room_info(location, room):
                         room_info.append(partial_data)
 
     return room_info
+"""
+    
+@app.get("/locations")
+def get_locations():
+    try:
+        response = supabase.table("locations").select("id,name,code").execute()
+
+        for location in response.data:
+            location_id = location.get("id")
+            response_rooms = supabase.table("rooms").select("id,name,code,description,layout").eq("location_id",location_id).execute()
+            location["rooms"] = response_rooms.data
+
+        print(response.data)
+
+        return response.data
+    except Exception as e:
+        print(str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/sensor_data/{location}/{room}")
+def get_sensor_data(location, room):
+    try:
+      
+        # read from home assistant
+
+        endpoint = "/states"
+
+        states = call_ha_api("GET", endpoint)
+
+        sensor_data = {}
+
+        chairs = []
+
+        location_room = location + "_" + room
+
+        for elem in states:
+            #print("elem",elem)
+            entity_id_useful = str(elem.get("entity_id").split(".")[1])
+            if entity_id_useful.startswith(location_room):
+               # split by _, join 0th and 1th, and join all the rest
+                sensorType = str(entity_id_useful[len(location_room) + 1:])
+
+                if sensorType == "stolica_free":
+                    sensor_data["free_chairs"] = elem.get("state")
+                elif sensorType == "ac":
+                    sensor_data["ac"] = elem.get("state")
+                elif sensorType == "humidity":
+                    sensor_data["humidity"] = round(float(elem.get("state")),0)
+                elif sensorType == "temperature":
+                    sensor_data["temperature"] = round(float(elem.get("state")),1)
+                elif sensorType == "pressure":
+                    sensor_data["pressure"] = round(float(elem.get("state")),0)
+                elif sensorType.startswith("stolica"):
+                    chairs.append({"name": sensorType, "state": elem.get("state")})
+        
+        sensor_data["chairs"] = chairs
+
+        print(sensor_data)
+        return sensor_data
+
+    except Exception as e:
+        print(str(e))
+        raise HTTPException(status_code=500, detail=str(e))
