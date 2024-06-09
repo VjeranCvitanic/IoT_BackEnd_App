@@ -287,7 +287,7 @@ def get_sensor_data(location, room):
 
         sensor_data = {}
 
-        chairs = []
+        chairs = {}
 
         location_room = location + "_" + room
 
@@ -309,7 +309,7 @@ def get_sensor_data(location, room):
                 elif sensorType == "pressure":
                     sensor_data["pressure"] = round(float(elem.get("state")),0)
                 elif sensorType.startswith("stolica"):
-                    chairs.append({"name": sensorType, "state": elem.get("state")})
+                    chairs[sensorType] =  elem.get("state")
         
         sensor_data["chairs"] = chairs
 
