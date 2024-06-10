@@ -278,15 +278,11 @@ def get_locations():
 @app.get("/sensor_data/{location}/{room}")
 def get_sensor_data(location, room):
     try:
-      
         # read from home assistant
-
         endpoint = "/states"
-
         states = call_ha_api("GET", endpoint)
 
         sensor_data = {}
-
         chairs = {}
 
         location_room = location + "_" + room
